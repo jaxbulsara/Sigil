@@ -9,7 +9,7 @@ setup(
     author="Jay Bulsara",
     author_email="jaxbulsara@gmail.com",
     url="https://github.com/jaxbulsara/neogm",
-    download_url="https://github.com/jaxbulsara/neogm/archive/v_01.tar.gz",
+    download_url="https://github.com/jaxbulsara/neogm/archive/v0.1.tar.gz",
     keywords=["neo4j", "object-graph-mapper", "ogm", "bolt", "cypher"],
     install_requires=["neo4j",],
     classifiers=[
