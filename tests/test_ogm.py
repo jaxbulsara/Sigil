@@ -2,6 +2,7 @@ from neogm import Graph, NodeBase, Property
 from neogm.cypher import Query
 
 import pytest
+import re
 
 
 @pytest.fixture
@@ -35,10 +36,27 @@ def test_simple_node_creation(graph):
         name = Property()
 
     sam = Character(name="Samwise Gamgee")
+    frodo = Character(name="Frodo Baggins")
 
     query = Query(graph)
     query.create(sam, "sam")
-    query.return_("sam")
+
+    assert re.match(
+        r"CREATE \(sam:Character{`name`: 'Samwise Gamgee'}\)\n",
+        query._statement,
+    )
+
+    query.create(frodo)
+
+    assert re.match(
+        r"CREATE \(([a-z0-9]{8}):Character{`name`: 'Frodo Baggins'}\)\n",
+        query._statement,
+    )
+
+    query.return_()
+
+    assert re.match(r"RETURN sam,([a-z0-9]{8})\n", query._statement)
+
     query.return_single()
 
     record = query.run()
