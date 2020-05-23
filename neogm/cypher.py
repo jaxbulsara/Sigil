@@ -1,6 +1,9 @@
 from .ogm import NodeBase
 
+import secrets
+
 CREATE = "CREATE"
+RETURN = "RETURN"
 
 
 class Query(object):
@@ -20,16 +23,34 @@ class Query(object):
             self._transaction = self._session.begin_transaction()
 
         self._statement = ""
+        self._names = []
+        self._return_type = None
 
     def create(self, graph_object, name=None):
-        print(f"{name}:{graph_object}")
-        if isinstance(object, NodeBase):
+        if not name:
+            name = secrets.token_hex(8)
+            self._names.append(name)
+
+        if isinstance(graph_object, NodeBase):
             self._create_node(graph_object, name)
 
     def _create_node(self, node, name=None):
         node = f"({name}:{node})"
-        create_statement = f"{CREATE} {node}\n"
+        create_statement = f"{CREATE} {node}"
 
-        self._statement += create_statement
+        self._append(create_statement)
 
-        print(self._statement)
+    def return_(self, *names):
+        if not names:
+            names = self._names
+
+        names_statement = ",".join(names)
+        return_statement = f"{RETURN} {names_statement}"
+
+        self._append(return_statement)
+
+    def return_single(self):
+        self._return_type == "single"
+
+    def _append(self, statement):
+        self._statement += statement + "\n"
