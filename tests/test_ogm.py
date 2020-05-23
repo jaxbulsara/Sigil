@@ -49,8 +49,6 @@ def test_simple_node_creation(graph):
         r"RETURN sam,_([a-z0-9]{8})", query._statement.split("\n")[-2]
     )
 
-    query.return_single()
-
     record = query.run()
 
     sam_node = record[0]
