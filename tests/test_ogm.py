@@ -1,4 +1,4 @@
-from neogm import Graph, NodeBase, Property
+from neogm import Graph, node_base, Property
 from neogm.cypher import Query
 
 import pytest
@@ -14,26 +14,16 @@ def graph():
     graph.delete_all()
 
 
-def test_object_property_assignment(graph):
+def test_simple_node_creation(graph):
+    NodeBase = node_base()
+
     class Character(NodeBase):
         name = Property()
-        extra_attribute = None
 
     with pytest.raises(
-        AttributeError, match=r"Character class has no attribute 'occupation'\."
+        AttributeError, match=r"Character has no attribute 'occupation'\."
     ):
         Character(name="Samwise Gamgee", occupation="Gardener")
-
-    with pytest.raises(
-        AttributeError,
-        match=r"Character node has no Property 'extra_attribute'\.",
-    ):
-        Character(name="Samwise Gamgee", extra_attribute="extra")
-
-
-def test_simple_node_creation(graph):
-    class Character(NodeBase):
-        name = Property()
 
     sam = Character(name="Samwise Gamgee")
     frodo = Character(name="Frodo Baggins")
@@ -42,20 +32,22 @@ def test_simple_node_creation(graph):
     query.create(sam, "sam")
 
     assert re.match(
-        r"CREATE \(sam:Character{`name`: 'Samwise Gamgee'}\)\n",
-        query._statement,
+        r"CREATE \(sam:Character{`name`: 'Samwise Gamgee'}\)",
+        query._statement.split("\n")[-2],
     )
 
     query.create(frodo)
 
     assert re.match(
-        r"CREATE \(([a-z0-9]{8}):Character{`name`: 'Frodo Baggins'}\)\n",
-        query._statement,
+        r"CREATE \(_([a-z0-9]{8}):Character{`name`: 'Frodo Baggins'}\)",
+        query._statement.split("\n")[-2],
     )
 
     query.return_()
 
-    assert re.match(r"RETURN sam,([a-z0-9]{8})\n", query._statement)
+    assert re.match(
+        r"RETURN sam,_([a-z0-9]{8})", query._statement.split("\n")[-2]
+    )
 
     query.return_single()
 

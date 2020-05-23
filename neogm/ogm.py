@@ -23,36 +23,18 @@ class Graph(GraphDatabase):
 
 
 class Property:
-    def __init__(self):
-        self._value = None
+    pass
 
-    @property
-    def value(self):
-        return self._value
 
-    @value.setter
-    def value(self, value):
-        self._value = value
+class GraphObjectMeta(type):
+    def __init__(cls, classname, bases, dict_):
+        type.__init__(cls, classname, bases, dict_)
 
 
 class GraphObject:
     @property
-    def properties(self):
-        object_attributes = dir(self)
-        object_attributes.remove("properties")
-        object_attributes.remove("cypher_properties")
-
-        object_properties = {
-            attribute: getattr(self, attribute).value
-            for attribute in object_attributes
-            if isinstance(getattr(self, attribute), Property)
-        }
-
-        return object_properties
-
-    @property
     def cypher_properties(self):
-        properties = self.properties
+        properties = vars(self)
         cypher_properties = "{"
 
         for name, value in properties.items():
@@ -64,29 +46,41 @@ class GraphObject:
         return cypher_properties
 
 
-class NodeBase(GraphObject):
-    def __init__(self, **properties):
-        def raise_no_attribute():
-            no_attribute = not hasattr(self, name)
-            if no_attribute:
-                message = f"{self.class_name} class has no attribute '{name}'."
-                raise AttributeError(message)
+def _constructor(self, **kwargs):
+    cls_ = type(self)
+    for key in kwargs:
+        no_attribute = not hasattr(cls_, key)
+        if no_attribute:
+            message = f"{cls_.__name__} has no attribute '{key}'."
+            raise AttributeError(message)
 
-        def raise_no_property():
-            no_property = type(_property) != Property
-            if no_property:
-                message = f"{self.class_name} node has no Property '{name}'."
-                raise AttributeError(message)
+        setattr(self, key, kwargs[key])
 
-        self.class_name = self.__class__.__name__
-        for name, value in properties.items():
-            raise_no_attribute()
 
-            _property = getattr(self, name)
+_constructor.__name__ = "__init__"
 
-            raise_no_property()
 
-            _property.value = value
+def _node_cypher_repr(self):
+    return f"{self.__class__.__name__}{self.cypher_properties}"
 
-    def __repr__(self):
-        return f"{self.class_name}{self.cypher_properties}"
+
+_node_cypher_repr.__name__ = "__repr__"
+
+
+def node_base(
+    cls=GraphObject,
+    name="NodeBase",
+    constructor=_constructor,
+    representer=_node_cypher_repr,
+    metaclass=GraphObjectMeta,
+):
+    bases = not isinstance(cls, tuple) and (cls,) or cls
+    class_dict = dict()
+
+    if constructor:
+        class_dict["__init__"] = constructor
+
+    if representer:
+        class_dict["__repr__"] = representer
+
+    return metaclass(name, bases, class_dict)

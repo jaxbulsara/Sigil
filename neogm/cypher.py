@@ -1,4 +1,4 @@
-from .ogm import NodeBase
+from .ogm import GraphObject
 
 import secrets
 
@@ -28,10 +28,11 @@ class Query(object):
 
     def create(self, graph_object, name=None):
         if not name:
-            name = secrets.token_hex(8)
-            self._names.append(name)
+            name = self._generate_name()
 
-        if isinstance(graph_object, NodeBase):
+        self._names.append(name)
+
+        if isinstance(graph_object, GraphObject):
             self._create_node(graph_object, name)
 
     def _create_node(self, node, name=None):
@@ -51,6 +52,13 @@ class Query(object):
 
     def return_single(self):
         self._return_type == "single"
+
+    def _generate_name(self):
+        name = "_" + secrets.token_hex(4)
+        while name in self._names:
+            name = "_" + secrets.token_hex(4)
+
+        return name
 
     def _append(self, statement):
         self._statement += statement + "\n"
