@@ -25,8 +25,8 @@ class Graph(GraphDatabase):
 
 class Property:
     def __init__(self, name=None):
-        self._name = name
-        self._value = None
+        self.name = name
+        self.value = None
 
     @property
     def value(self):
@@ -69,7 +69,7 @@ class GraphObjectMeta(type):
             class_dict[name].name = class_dict[name].name or name
 
 
-class GraphObject:
+class GraphObjectBase:
     @property
     def _properties(self):
         properties = {
@@ -101,7 +101,7 @@ class GraphObject:
         return f"{self.__class__.__name__}(properties={self._properties})"
 
 
-class NodeBase(GraphObject, metaclass=GraphObjectMeta):
+class NodeBase(GraphObjectBase, metaclass=GraphObjectMeta):
     def __init__(self, **kwargs):
         cls_ = type(self)
         for key in kwargs:
@@ -111,5 +111,7 @@ class NodeBase(GraphObject, metaclass=GraphObjectMeta):
                 raise AttributeError(message)
 
             attribute = deepcopy(getattr(self, key))
-            attribute.value = kwargs[key]
-            setattr(self, key, attribute)
+
+            if type(attribute) == Property:
+                attribute.value = kwargs[key]
+                setattr(self, key, attribute)
