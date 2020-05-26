@@ -1,4 +1,5 @@
 from neo4j import GraphDatabase
+from copy import deepcopy
 
 
 class Graph(GraphDatabase):
@@ -23,7 +24,28 @@ class Graph(GraphDatabase):
 
 
 class Property:
-    pass
+    def __init__(self, name=None):
+        self._name = None
+        self._value = None
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        self._name = name
+
+    def __repr__(self):
+        return repr(self.value)
 
 
 class GraphObjectMeta(type):
@@ -37,9 +59,11 @@ class GraphObject:
         properties = vars(self)
         cypher_properties = "{"
 
-        for name, value in properties.items():
-            if value:
-                cypher_properties += f"`{name}`: {repr(value)}"
+        for _property in properties.values():
+            if _property.value and _property.name != "id":
+                cypher_properties += (
+                    f"`{_property.name}`: {repr(_property.value)}"
+                )
 
         cypher_properties += "}"
 
@@ -54,7 +78,13 @@ def _constructor(self, **kwargs):
             message = f"{cls_.__name__} has no attribute '{key}'."
             raise AttributeError(message)
 
-        setattr(self, key, kwargs[key])
+        attribute = deepcopy(getattr(self, key))
+
+        if type(attribute) == Property:
+            attribute.name = attribute.name or key
+            attribute.value = kwargs[key]
+
+        setattr(self, key, attribute)
 
 
 _constructor.__name__ = "__init__"
