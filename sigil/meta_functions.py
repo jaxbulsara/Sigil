@@ -18,6 +18,5 @@ def {name}(self, value):
     if type(value) == int:
         self._{name} = value
     else:
-        raise TypeError(f"id must be of type int, not {type(value)}")
+        raise TypeError(f"id must be of type int, not {{type(value)}}")
 """
-

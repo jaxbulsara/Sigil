@@ -10,6 +10,7 @@ import secrets
 CREATE = "CREATE"
 RETURN = "RETURN"
 
+
 class SigilStatementResult(BoltStatementResult):
     def __init__(self, result):
         self._session = result._session
@@ -40,10 +41,12 @@ class SigilStatementResult(BoltStatementResult):
                 for label in value.labels:
                     if label in NodeBase._labels.keys():
                         node_class = NodeBase._labels[label]
-                        properties = {dict_item[0]: dict_item[1] for dict_item in value.items()}
+                        properties = {
+                            dict_item[0]: dict_item[1]
+                            for dict_item in value.items()
+                        }
                         properties.update({"id": value.id})
                         casted_record.update({key: node_class(**properties)})
-                
 
         return Record(casted_record)
 

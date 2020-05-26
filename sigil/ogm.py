@@ -1,4 +1,9 @@
-from .meta_functions import PROPERTY_GETTER, PROPERTY_SETTER, ID_GETTER, ID_SETTER
+from .meta_functions import (
+    PROPERTY_GETTER,
+    PROPERTY_SETTER,
+    ID_GETTER,
+    ID_SETTER,
+)
 
 from neo4j import GraphDatabase
 from copy import deepcopy
@@ -110,7 +115,8 @@ class GraphObjectMeta(type):
             class_dict["_id"] = None
 
             id_getter = _create_function(ID_GETTER, "id")
-            id_setter = _create_function(ID_GETTER, "id")
+            print(ID_SETTER.format(name="id"))
+            id_setter = _create_function(ID_SETTER, "id")
             _create_python_property("id", id_getter, id_setter)
 
         attributes = _get_class_attributes()
@@ -131,6 +137,10 @@ class GraphObjectMeta(type):
 
 
 class GraphObjectBase:
+    @property
+    def _label(self):
+        return type(self).__name__
+
     @property
     def _properties(self):
         properties = {
@@ -160,7 +170,7 @@ class GraphObjectBase:
         return f"{self.__class__.__name__}{self._cypher_properties}"
 
     def __repr__(self):
-        
+
         return f"{self.__class__.__name__}(id={getattr(self, 'id', None)}, properties={self._properties})"
 
 
@@ -195,6 +205,7 @@ class NodeBase(GraphObjectBase, metaclass=GraphObjectMeta):
 
             if type(attribute) == Property:
                 _set_property(private_name, attribute)
+
 
 class MultiLabel:
     pass

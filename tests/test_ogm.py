@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import pytest
 import re
 
+
 @pytest.fixture
 def graph():
     graph = Graph()
@@ -19,12 +20,11 @@ def test_simple_node_creation(graph):
     class Character(NodeBase):
         id = Property()
 
-    assert Character.id == None
+    sam = Character()
+    assert sam.id == None
 
     class Character(NodeBase):
         name = Property()
-
-    assert Character.id == None
 
     with pytest.raises(
         AttributeError, match=r"Character has no attribute 'occupation'\."
@@ -35,6 +35,7 @@ def test_simple_node_creation(graph):
     frodo = Character(name="Frodo Baggins")
     gandalf = Character(name="Gandalf the White", id=0)
 
+    assert sam.id == None
     assert gandalf.id == 0
 
     query = Query(graph)
@@ -66,12 +67,13 @@ def test_simple_node_creation(graph):
 
     assert type(sam_node) == Character
     assert sam_node._label == "Character"
-    assert sam_node._properties == {name: "Samwise Gamgee"}
+    assert sam_node._properties == {"name": "Samwise Gamgee"}
     assert type(sam_node.name) == str
     assert sam_node.name == "Samwise Gamgee"
     assert sam_node.id is not None
     assert type(sam_node.id) == int
     assert sam_node != sam
+
 
 def test_complex_node_creation(graph):
     class Employee(NodeBase):
@@ -82,18 +84,24 @@ def test_complex_node_creation(graph):
 
         manager = ToRelationship("Manager", "REPORTS_TO")
 
-    
     class Manager(NodeBase):
         department = Property()
         employees = FromRelationship("Employee", "REPORTS_TO")
 
-
-    with pytest.raises(TypeError, r"Employee expected at least 2 arguments, got 1"):
+    with pytest.raises(
+        TypeError, r"Employee expected at least 2 arguments, got 1"
+    ):
         Employee(name="Jay Bulsara")
-    
+
     employee_1 = Employee(name="Richter", email="Richter@smashultimate.com")
-    employee_2 = Employee(name="Link", email="Link@smashultimate.com", favorite_food="Milk")
-    employee_3 = Employee(name="Marth", email="Marth@smashultimate.com", start_date=datetime.fromisoformat("2020-05-22T10:23+04:00"))
+    employee_2 = Employee(
+        name="Link", email="Link@smashultimate.com", favorite_food="Milk"
+    )
+    employee_3 = Employee(
+        name="Marth",
+        email="Marth@smashultimate.com",
+        start_date=datetime.fromisoformat("2020-05-22T10:23+04:00"),
+    )
     manager_1 = Manager(department="Smash")
 
     assert type(employee_1) == Employee
@@ -144,7 +152,3 @@ def test_complex_node_creation(graph):
         assert employee.id is not None
         assert type(employee) == Employee
         assert employee.manager.first() == matched_employee["Manager"]
-
-
-
-    
