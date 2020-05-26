@@ -1,4 +1,4 @@
-from .meta_functions import PROPERTY_GETTER, PROPERTY_SETTER
+from .meta_functions import PROPERTY_GETTER, PROPERTY_SETTER, ID_GETTER, ID_SETTER
 
 from neo4j import GraphDatabase
 from copy import deepcopy
@@ -64,7 +64,7 @@ class GraphObjectMeta(type):
             original_property = deepcopy(class_dict[name])
             class_dict[private_name] = original_property
 
-        def _convert_to_python_property(
+        def _create_python_property(
             name,
             get_function,
             set_function=None,
@@ -90,6 +90,7 @@ class GraphObjectMeta(type):
                 attribute_name
                 for attribute_name in class_dict.keys()
                 if not attribute_name.startswith("__")
+                and attribute_name != "id"
             ]
 
             return attributes
@@ -101,15 +102,24 @@ class GraphObjectMeta(type):
             property_getter = _create_function(PROPERTY_GETTER, name)
             property_setter = _create_function(PROPERTY_SETTER, name)
 
-            _convert_to_python_property(
+            _create_python_property(
                 name, property_getter, property_setter,
             )
+
+        def _create_id_attribute():
+            class_dict["_id"] = None
+
+            id_getter = _create_function(ID_GETTER, "id")
+            id_setter = _create_function(ID_GETTER, "id")
+            _create_python_property("id", id_getter, id_setter)
 
         attributes = _get_class_attributes()
 
         for attribute_name in attributes:
             if type(class_dict[attribute_name]) == Property:
                 _setup_property(attribute_name)
+
+        _create_id_attribute()
 
         new_class = super(GraphObjectMeta, cls).__new__(
             cls, classname, bases, class_dict
@@ -185,3 +195,6 @@ class NodeBase(GraphObjectBase, metaclass=GraphObjectMeta):
 
             if type(attribute) == Property:
                 _set_property(private_name, attribute)
+
+class MultiLabel:
+    pass

@@ -109,9 +109,6 @@ class Query(object):
 
         self._append(return_statement)
 
-    def return_single(self):
-        self._return_type == "single"
-
     def _generate_name(self):
         name = "_" + secrets.token_hex(4)
         while name in self._names:
