@@ -1,7 +1,8 @@
-from neogm import Graph
+from sigil import Graph
 from neo4j.types import Node
 
 import pytest
+
 
 @pytest.fixture
 def graph():
@@ -10,6 +11,7 @@ def graph():
     yield graph
 
     graph.delete_all()
+
 
 def test_graph(graph):
     with graph.driver.session() as session:
@@ -24,5 +26,3 @@ def test_graph(graph):
         assert type(created_node) == Node
         assert tuple(created_node.labels) == ("TestNode",)
         assert created_node["test_property"] == "test_value"
-
-

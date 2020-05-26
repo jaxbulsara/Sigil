@@ -1,5 +1,5 @@
-from neogm import Graph, node_base, Property
-from neogm.cypher import Query
+from sigil import Graph, NodeBase, Property
+from sigil.cypher import Query
 
 import pytest
 import re
@@ -15,10 +15,8 @@ def graph():
 
 
 def test_simple_node_creation(graph):
-    NodeBase = node_base()
-
     class Character(NodeBase):
-        name = Property()
+        name = Property("123full name")
 
     with pytest.raises(
         AttributeError, match=r"Character has no attribute 'occupation'\."
@@ -27,6 +25,8 @@ def test_simple_node_creation(graph):
 
     sam = Character(name="Samwise Gamgee")
     frodo = Character(name="Frodo Baggins")
+    print(sam)
+    print(repr(sam))
 
     query = Query(graph)
     query.create(sam, "sam")

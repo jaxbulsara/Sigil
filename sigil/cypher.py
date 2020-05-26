@@ -1,4 +1,4 @@
-from .ogm import GraphObject
+from .ogm import NodeBase
 
 import neobolt
 import secrets
@@ -69,7 +69,7 @@ class Query(object):
 
         self._names.append(name)
 
-        if isinstance(graph_object, GraphObject):
+        if isinstance(graph_object, NodeBase):
             self._create_node(graph_object, name)
 
     def _create_node(self, node, name=None):
