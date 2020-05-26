@@ -1,16 +1,16 @@
 from distutils.core import setup
 
 setup(
-    name="neogm",
-    packages=["neogm"],
+    name="sigil",
+    packages=["sigil"],
     version="0.1",
     license="MIT",
     description="Object-Graph Mapper for the neo4j bolt driver for Python. Built for Python 3.",
     author="Jay Bulsara",
     author_email="jaxbulsara@gmail.com",
     url="https://github.com/jaxbulsara/neogm",
-    download_url="https://github.com/jaxbulsara/neogm/archive/v0.1-alpha.tar.gz",
-    keywords=["neo4j", "object-graph-mapper", "ogm", "bolt", "cypher"],
+    download_url="https://github.com/jaxbulsara/sigil/archive/v0.1-alpha.tar.gz",
+    keywords=["neo4j", "object-graph-mapper", "ogm", "bolt", "cypher", "sigil"],
     install_requires=["neo4j",],
     classifiers=[
         "Development Status :: 3 - Alpha",
