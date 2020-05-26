@@ -16,7 +16,7 @@ def graph():
 
 def test_simple_node_creation(graph):
     class Character(NodeBase):
-        name = Property("123full name")
+        name = Property()
 
     with pytest.raises(
         AttributeError, match=r"Character has no attribute 'occupation'\."
@@ -25,8 +25,6 @@ def test_simple_node_creation(graph):
 
     sam = Character(name="Samwise Gamgee")
     frodo = Character(name="Frodo Baggins")
-    print(sam)
-    print(repr(sam))
 
     query = Query(graph)
     query.create(sam, "sam")

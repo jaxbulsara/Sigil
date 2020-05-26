@@ -26,7 +26,7 @@ class Graph(GraphDatabase):
 
 class Property:
     def __init__(self, name=None):
-        self._name = None
+        self._name = name
         self._value = None
 
     @property
@@ -58,17 +58,17 @@ class GraphObjectMeta(type):
         ]
 
         for attribute in attributes:
-            cls._create_getter_setter(attribute, class_dict)
+            cls._set_property_name(attribute, class_dict)
+            # cls._create_getter_setter(attribute, class_dict)
 
-        print(class_dict)
-
-        new_class = super(GraphObjectMeta, cls).__new__(
+        return super(GraphObjectMeta, cls).__new__(
             cls, classname, bases, class_dict
         )
 
-        print(new_class.__dict__)
-
-        return new_class
+    @classmethod
+    def _set_property_name(cls, name, class_dict):
+        if type(class_dict[name]) == Property:
+            class_dict[name].name = class_dict[name].name or name
 
     @classmethod
     def _create_getter_setter(cls, name, class_dict):
@@ -76,6 +76,7 @@ class GraphObjectMeta(type):
             private_name = "_" + name
             original_property = deepcopy(class_dict[name])
             class_dict[private_name] = original_property
+            print(class_dict[private_name].name)
             class_dict[name] = property(
                 cls._create_property_getter(name),
                 cls._create_property_setter(name),
@@ -85,7 +86,7 @@ class GraphObjectMeta(type):
     def _create_property_getter(name):
         code = f"""
 def {name}(self):
-    return self._{name}.value
+    return {{self._{name}.name: self._{name}.value}}
         """
         compiled_code = compile(code, "<string>", "exec")
         return FunctionType(compiled_code.co_consts[0], globals(), name)
@@ -104,10 +105,11 @@ class GraphObject:
     @property
     def _properties(self):
         properties = {
-            getattr(self, "_" + name).name: getattr(self, name)
+            getattr(self, name).name: getattr(self, name).value
             for name in self.__dir__()
             if not name.startswith("_")
-            and type(getattr(self, "_" + name)) == Property
+            # and type(getattr(self, "_" + name)) == Property
+            and type(getattr(self, name)) == Property
         }
 
         return properties
@@ -141,7 +143,11 @@ class NodeBase(GraphObject, metaclass=GraphObjectMeta):
                 message = f"{cls_.__name__} has no attribute '{key}'."
                 raise AttributeError(message)
 
-            private_key = "_" + key
-            attribute = deepcopy(getattr(self, private_key))
+            # private_key = "_" + key
+            # attribute = deepcopy(getattr(self, private_key))
+            # attribute.value = kwargs[key]
+            # setattr(self, private_key, attribute)
+
+            attribute = deepcopy(getattr(self, key))
             attribute.value = kwargs[key]
-            setattr(self, private_key, attribute)
+            setattr(self, key, attribute)
