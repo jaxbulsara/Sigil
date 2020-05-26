@@ -1,6 +1,5 @@
 from neo4j import GraphDatabase
 from copy import deepcopy
-from types import FunctionType
 
 
 class Graph(GraphDatabase):
