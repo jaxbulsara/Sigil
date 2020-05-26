@@ -1,10 +1,51 @@
 from .ogm import NodeBase
 
+from neo4j import BoltStatementResult, Record
+from neo4j.types import Node
+from logging import getLogger, StreamHandler, DEBUG
+
 import neobolt
 import secrets
 
 CREATE = "CREATE"
 RETURN = "RETURN"
+
+class SigilStatementResult(BoltStatementResult):
+    def __init__(self, result):
+        self._session = result._session
+        self._hydrant = result._hydrant
+        self._metadata = result._metadata
+        self._records = result._records
+        self._summary = result._summary
+
+    def records(self):
+        records = self._records
+        next_record = records.popleft
+        while records:
+            next_ = next_record()
+            yield self.cast(next_)
+        attached = self.attached
+        if attached():
+            self._session.send()
+        while attached():
+            self._session.fetch()
+            while records:
+                next_ = next_record()
+                yield self.cast(next_)
+
+    def cast(self, record):
+        casted_record = {}
+        for key, value in record.items():
+            if type(value) == Node:
+                for label in value.labels:
+                    if label in NodeBase._labels.keys():
+                        node_class = NodeBase._labels[label]
+                        properties = {dict_item[0]: dict_item[1] for dict_item in value.items()}
+                        properties.update({"id": value.id})
+                        casted_record.update({key: node_class(**properties)})
+                
+
+        return Record(casted_record)
 
 
 class Query(object):
@@ -12,7 +53,7 @@ class Query(object):
         self._graph = graph
         self._statement = ""
         self._names = []
-        self._return_type = None
+        self._result = None
 
         self.initialize(session, transaction)
 
@@ -43,25 +84,6 @@ class Query(object):
 
         else:
             _init_new_session()
-
-    def run(self, raise_errors=False):
-        try:
-            record = self._transaction.run(self._statement).data()
-
-        except neobolt.exceptions.ClientError as client_error:
-            self._transaction.success = False
-            if raise_errors:
-                raise client_error
-
-        else:
-            self._transaction.success = True
-
-        finally:
-            if self._close_transaction_on_run:
-                self._transaction.close()
-
-            if self._close_session_on_run:
-                self._session.close()
 
     def create(self, graph_object, name=None):
         if not name:
@@ -99,3 +121,23 @@ class Query(object):
 
     def _append(self, statement):
         self._statement += statement + "\n"
+
+    def run(self, raise_errors=False):
+        try:
+            result = self._transaction.run(self._statement)
+            return SigilStatementResult(result)
+
+        except neobolt.exceptions.ClientError as client_error:
+            self._transaction.success = False
+            if raise_errors:
+                raise client_error
+
+        else:
+            self._transaction.success = True
+
+        finally:
+            if self._close_transaction_on_run:
+                self._transaction.close()
+
+            if self._close_session_on_run:
+                self._session.close()

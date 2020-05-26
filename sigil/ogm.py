@@ -52,6 +52,8 @@ class Property:
 
 
 class GraphObjectMeta(type):
+    _labels = dict()
+
     def __new__(cls, classname, bases, class_dict):
         def _set_property_name(name):
             class_dict[name].name = class_dict[name].name or name
@@ -109,9 +111,13 @@ class GraphObjectMeta(type):
             if type(class_dict[attribute_name]) == Property:
                 _setup_property(attribute_name)
 
-        return super(GraphObjectMeta, cls).__new__(
+        new_class = super(GraphObjectMeta, cls).__new__(
             cls, classname, bases, class_dict
         )
+
+        cls._labels.update({classname: new_class})
+
+        return new_class
 
 
 class GraphObjectBase:
@@ -121,6 +127,7 @@ class GraphObjectBase:
             getattr(self, "_" + name).name: getattr(self, name)
             for name in self.__dir__()
             if not name.startswith("_")
+            and name != "id"
             and type(getattr(self, "_" + name)) == Property
         }
 
@@ -132,7 +139,7 @@ class GraphObjectBase:
         cypher_properties = "{"
 
         for name, value in properties.items():
-            if value and name != "id":
+            if value:
                 cypher_properties += f"`{name}`: {repr(value)}"
 
         cypher_properties += "}"
@@ -143,7 +150,8 @@ class GraphObjectBase:
         return f"{self.__class__.__name__}{self._cypher_properties}"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(properties={self._properties})"
+        
+        return f"{self.__class__.__name__}(id={getattr(self, 'id', None)}, properties={self._properties})"
 
 
 class NodeBase(GraphObjectBase, metaclass=GraphObjectMeta):
@@ -163,6 +171,11 @@ class NodeBase(GraphObjectBase, metaclass=GraphObjectMeta):
         def _set_property(private_name, attribute):
             attribute.value = kwargs[attribute_name]
             setattr(self, private_name, attribute)
+
+        _id = kwargs.pop("id", None)
+
+        if _id is not None:
+            setattr(self, "id", _id)
 
         for attribute_name in kwargs:
             _assert_attribute_exists(attribute_name)

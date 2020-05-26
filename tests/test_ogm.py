@@ -1,9 +1,8 @@
 from sigil import Graph, NodeBase, Property
-from sigil.cypher import Query
+from sigil.cypher import Query, SigilStatementResult
 
 import pytest
 import re
-
 
 @pytest.fixture
 def graph():
@@ -47,12 +46,14 @@ def test_simple_node_creation(graph):
         r"RETURN sam,_([a-z0-9]{8})", query._statement.split("\n")[-2]
     )
 
-    record = query.run()
+    result = query.run()
 
-    sam_node = record[0]
+    assert type(result) == SigilStatementResult
+
+    sam_node, frodo_node = tuple(result.values()[0])
 
     assert type(sam_node) == Character
-    assert type(sam_node) == str
+    assert type(sam_node.name) == str
     assert sam_node.name == "Samwise Gamgee"
     assert sam_node.id is not None
     assert type(sam_node.id) == int
