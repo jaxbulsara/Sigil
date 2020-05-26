@@ -59,7 +59,6 @@ class GraphObjectMeta(type):
 
         for attribute in attributes:
             cls._set_property_name(attribute, class_dict)
-            # cls._create_getter_setter(attribute, class_dict)
 
         return super(GraphObjectMeta, cls).__new__(
             cls, classname, bases, class_dict
@@ -70,36 +69,6 @@ class GraphObjectMeta(type):
         if type(class_dict[name]) == Property:
             class_dict[name].name = class_dict[name].name or name
 
-    @classmethod
-    def _create_getter_setter(cls, name, class_dict):
-        if type(class_dict[name]) == Property:
-            private_name = "_" + name
-            original_property = deepcopy(class_dict[name])
-            class_dict[private_name] = original_property
-            print(class_dict[private_name].name)
-            class_dict[name] = property(
-                cls._create_property_getter(name),
-                cls._create_property_setter(name),
-            )
-
-    @staticmethod
-    def _create_property_getter(name):
-        code = f"""
-def {name}(self):
-    return {{self._{name}.name: self._{name}.value}}
-        """
-        compiled_code = compile(code, "<string>", "exec")
-        return FunctionType(compiled_code.co_consts[0], globals(), name)
-
-    @staticmethod
-    def _create_property_setter(name):
-        code = f"""
-def {name}(self, value):
-    self._{name}.value = value
-        """
-        compiled_code = compile(code, "<string>", "exec")
-        return FunctionType(compiled_code.co_consts[0], globals(), name)
-
 
 class GraphObject:
     @property
@@ -108,7 +77,6 @@ class GraphObject:
             getattr(self, name).name: getattr(self, name).value
             for name in self.__dir__()
             if not name.startswith("_")
-            # and type(getattr(self, "_" + name)) == Property
             and type(getattr(self, name)) == Property
         }
 
@@ -142,11 +110,6 @@ class NodeBase(GraphObject, metaclass=GraphObjectMeta):
             if no_attribute:
                 message = f"{cls_.__name__} has no attribute '{key}'."
                 raise AttributeError(message)
-
-            # private_key = "_" + key
-            # attribute = deepcopy(getattr(self, private_key))
-            # attribute.value = kwargs[key]
-            # setattr(self, private_key, attribute)
 
             attribute = deepcopy(getattr(self, key))
             attribute.value = kwargs[key]
