@@ -17,6 +17,7 @@ class User(Base):
     def __repr__(self):
         return f"<User(name='{self.name}', fullname='{self.fullname}', nickname='{self.nickname}')>"
 
+
 user = User(name="Xiu", fullname="Ye Xiu", nickname="Ye Qiu")
 another_user = User(name="Rou", fullname="Tang Rou", nickname="Han Yanrou")
 

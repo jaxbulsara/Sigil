@@ -1,4 +1,13 @@
+from .meta_functions import (
+    PROPERTY_GETTER,
+    PROPERTY_SETTER,
+    ID_GETTER,
+    ID_SETTER,
+)
+
 from neo4j import GraphDatabase
+from copy import deepcopy
+from types import FunctionType
 
 
 class Graph(GraphDatabase):
@@ -23,18 +32,130 @@ class Graph(GraphDatabase):
 
 
 class Property:
-    pass
+    def __init__(self, name=None):
+        self.name = name
+        self.value = None
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        self._name = name
+
+    def __str__(self):
+        return f"{self.value}"
 
 
 class GraphObjectMeta(type):
-    def __init__(cls, classname, bases, dict_):
-        type.__init__(cls, classname, bases, dict_)
+    _labels = dict()
+
+    def __new__(cls, classname, bases, class_dict):
+        def _set_property_name(name):
+            class_dict[name].name = class_dict[name].name or name
+
+        def _set_attribute_private(name):
+            private_name = "_" + name
+
+            original_property = deepcopy(class_dict[name])
+            class_dict[private_name] = original_property
+
+        def _create_python_property(
+            name,
+            get_function,
+            set_function=None,
+            del_function=None,
+            docstring=None,
+        ):
+            class_dict[name] = property(
+                fget=get_function,
+                fset=set_function,
+                fdel=del_function,
+                doc=docstring,
+            )
+
+        def _create_function(function_code, name):
+            code = function_code.format(name=name)
+            compiled_code = compile(code, "<string>", "exec")
+            function = FunctionType(compiled_code.co_consts[0], globals(), name)
+
+            return function
+
+        def _get_class_attributes():
+            attributes = [
+                attribute_name
+                for attribute_name in class_dict.keys()
+                if not attribute_name.startswith("__")
+                and attribute_name != "id"
+            ]
+
+            return attributes
+
+        def _setup_property(name):
+            _set_property_name(name)
+            _set_attribute_private(name)
+
+            property_getter = _create_function(PROPERTY_GETTER, name)
+            property_setter = _create_function(PROPERTY_SETTER, name)
+
+            _create_python_property(
+                name, property_getter, property_setter,
+            )
+
+        def _create_id_attribute():
+            class_dict["_id"] = None
+
+            id_getter = _create_function(ID_GETTER, "id")
+            print(ID_SETTER.format(name="id"))
+            id_setter = _create_function(ID_SETTER, "id")
+            _create_python_property("id", id_getter, id_setter)
+
+        attributes = _get_class_attributes()
+
+        for attribute_name in attributes:
+            if type(class_dict[attribute_name]) == Property:
+                _setup_property(attribute_name)
+
+        _create_id_attribute()
+
+        new_class = super(GraphObjectMeta, cls).__new__(
+            cls, classname, bases, class_dict
+        )
+
+        cls._labels.update({classname: new_class})
+
+        return new_class
 
 
-class GraphObject:
+class GraphObjectBase:
     @property
-    def cypher_properties(self):
-        properties = vars(self)
+    def _label(self):
+        return type(self).__name__
+
+    @property
+    def _properties(self):
+        properties = {
+            getattr(self, "_" + name).name: getattr(self, name)
+            for name in self.__dir__()
+            if not name.startswith("_")
+            and name != "id"
+            and type(getattr(self, "_" + name)) == Property
+        }
+
+        return properties
+
+    @property
+    def _cypher_properties(self):
+        properties = self._properties
         cypher_properties = "{"
 
         for name, value in properties.items():
@@ -45,42 +166,46 @@ class GraphObject:
 
         return cypher_properties
 
+    def __str__(self):
+        return f"{self.__class__.__name__}{self._cypher_properties}"
 
-def _constructor(self, **kwargs):
-    cls_ = type(self)
-    for key in kwargs:
-        no_attribute = not hasattr(cls_, key)
-        if no_attribute:
-            message = f"{cls_.__name__} has no attribute '{key}'."
-            raise AttributeError(message)
+    def __repr__(self):
 
-        setattr(self, key, kwargs[key])
+        return f"{self.__class__.__name__}(id={getattr(self, 'id', None)}, properties={self._properties})"
 
 
-_constructor.__name__ = "__init__"
+class NodeBase(GraphObjectBase, metaclass=GraphObjectMeta):
+    def __init__(self, **kwargs):
+        def _assert_attribute_exists(name):
+            if not hasattr(type(self), name):
+                raise AttributeError(
+                    f"{type(self).__name__} has no attribute '{name}'."
+                )
+
+        def _create_private_name(name):
+            return "_" + name
+
+        def _get_attribute(private_name):
+            return deepcopy(getattr(self, private_name))
+
+        def _set_property(private_name, attribute):
+            attribute.value = kwargs[attribute_name]
+            setattr(self, private_name, attribute)
+
+        _id = kwargs.pop("id", None)
+
+        if _id is not None:
+            setattr(self, "id", _id)
+
+        for attribute_name in kwargs:
+            _assert_attribute_exists(attribute_name)
+
+            private_name = _create_private_name(attribute_name)
+            attribute = _get_attribute(private_name)
+
+            if type(attribute) == Property:
+                _set_property(private_name, attribute)
 
 
-def _node_cypher_repr(self):
-    return f"{self.__class__.__name__}{self.cypher_properties}"
-
-
-_node_cypher_repr.__name__ = "__repr__"
-
-
-def node_base(
-    cls=GraphObject,
-    name="NodeBase",
-    constructor=_constructor,
-    representer=_node_cypher_repr,
-    metaclass=GraphObjectMeta,
-):
-    bases = not isinstance(cls, tuple) and (cls,) or cls
-    class_dict = dict()
-
-    if constructor:
-        class_dict["__init__"] = constructor
-
-    if representer:
-        class_dict["__repr__"] = representer
-
-    return metaclass(name, bases, class_dict)
+class MultiLabel:
+    pass
