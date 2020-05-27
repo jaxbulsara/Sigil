@@ -1,4 +1,4 @@
-from neogm import Graph, node_base, Property
+from neogm import Graph, node_base, Property, RelationshipBase
 from neogm.cypher import Query
 
 import pytest
@@ -58,3 +58,23 @@ def test_simple_node_creation(graph):
     assert sam_node.name == "Samwise Gamgee"
     assert sam_node.id is not None
     assert type(sam_node.id) == int
+
+def test_relationships(graph):
+    query = Query(graph)
+    query.create(person_1 - FRIENDS_WITH > person_2)
+    query.create(person_2 - FRIENDS_WITH > person_3)
+    query.create(person_3 - FRIENDS_WITH > person_4)
+    query.create(person_4 - FRIENDS_WITH > person_5)
+    query.create(person_5 - FRIENDS_WITH > person_6)
+    query.create(person_6 - FRIENDS_WITH > person_1)
+    query.create(person_3 - FRIENDS_WITH > person_1)
+    query.return_("person_1")
+    result = query.run()
+    person_1_node = result.value()[0]
+
+    query.clear()
+
+    query.match(Path(person_1_node - FRIENDS_WITH*2 - Person, "person_1", "friends_with", "other"), "path")
+    query.return_()
+    result = query.run()
+    
