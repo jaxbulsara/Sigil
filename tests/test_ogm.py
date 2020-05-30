@@ -134,7 +134,7 @@ def test_wrong_property_default(graph):
         return f"default {value}"
 
     with pytest.raises(
-        ValueError, match=r"default must be a Callable or str, not int"
+        ValueError, match=r"default must be a Callable, not int"
     ):
 
         class TestNode(NodeBase):
@@ -150,43 +150,25 @@ def test_wrong_property_default(graph):
                 default=default_value, default_args="hello"
             )
 
-    with pytest.raises(
-        AttributeError,
-        match=r"TestNode has no attribute 'other_property' to use as default for 'test_property'",
-    ):
-
-        class TestNode(NodeBase):
-            test_property = Property(default="other_property")
-
-        TestNode()
-
-
-def test_no_default_defined(graph):
-    def default_value():
-        return f"default"
-
-    class TestNode(NodeBase):
-        test_property = Property()
-
-    with pytest.raises(
-        AttributeError,
-        match=r"No default defined for property 'test_property'",
-    ):
-        TestNode()
-
 
 def test_property_default(graph):
     def default_value(value):
         return f"default {value}"
 
     class TestNode(NodeBase):
-        other_property = Property(default="test_property")
-        test_property = Property(default=default_value, default_args=("hello",))
+        tuple_property = Property(
+            default=default_value, default_args=("hello",)
+        )
+        list_property = Property(default=default_value, default_args=["hello"])
+        dict_property = Property(
+            default=default_value, default_args=dict(value="hello")
+        )
 
     test_node = TestNode()
 
-    assert test_node.test_property == "default hello"
-    assert test_node.other_property == "default hello"
+    assert test_node.tuple_property == "default hello"
+    assert test_node.list_property == "default hello"
+    assert test_node.dict_property == "default hello"
 
 
 # def test_complex_node_creation(graph):

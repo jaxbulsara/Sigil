@@ -36,19 +36,17 @@ class Property:
     def __init__(self, name=None, default=None, default_args=None):
         def _raise_bad_default_type():
             default_is_callable = callable(self.default)
-            default_is_string = type(self.default) == str
-            if not (default_is_callable or default_is_string):
+            if not (default_is_callable):
                 raise ValueError(
-                    f"default must be a Callable or str, not {type(self.default).__name__}"
+                    f"default must be a Callable, not {type(self.default).__name__}"
                 )
 
         def _raise_bad_default_args():
-            default_args_is_iterable = isinstance(self.default_args, Iterable)
-            default_args_is_list = isinstance(self.default_args, list)
-            default_args_is_tuple = isinstance(self.default_args, tuple)
-            default_args_is_dict = isinstance(self.default_args, dict)
+            default_args_is_list = type(self.default_args) == list
+            default_args_is_tuple = type(self.default_args) == tuple
+            default_args_is_dict = type(self.default_args) == dict
 
-            default_args_is_valid = default_args_is_iterable and (
+            default_args_is_valid = (
                 default_args_is_list
                 or default_args_is_tuple
                 or default_args_is_dict
@@ -175,45 +173,7 @@ class GraphObjectMeta(type):
         return new_class
 
 
-class GraphObjectBase:
-    @property
-    def _label(self):
-        return type(self).__name__
-
-    @property
-    def _properties(self):
-        properties = {
-            getattr(self, "_" + name).name: getattr(self, name)
-            for name in self.__dir__()
-            if not name.startswith("_")
-            and name != "id"
-            and type(getattr(self, "_" + name)) == Property
-        }
-
-        return properties
-
-    @property
-    def _cypher_properties(self):
-        properties = self._properties
-        cypher_properties = "{"
-
-        for name, value in properties.items():
-            if value:
-                cypher_properties += f"`{name}`: {repr(value)}"
-
-        cypher_properties += "}"
-
-        return cypher_properties
-
-    def __str__(self):
-        return f"{self.__class__.__name__}{self._cypher_properties}"
-
-    def __repr__(self):
-
-        return f"{self.__class__.__name__}(id={getattr(self, 'id', None)}, properties={self._properties})"
-
-
-class NodeBase(GraphObjectBase, metaclass=GraphObjectMeta):
+class GraphObjectBase(metaclass=GraphObjectMeta):
     def __init__(self, **kwargs):
         def _create_private_name(name):
             return "_" + name
@@ -256,47 +216,19 @@ class NodeBase(GraphObjectBase, metaclass=GraphObjectMeta):
                         f"No default defined for property '{property_name}'"
                     )
 
-            for property_name in deepcopy(node_properties):
+            for property_name in node_properties:
                 private_name = _create_private_name(property_name)
                 property_ = _get_attribute(private_name)
 
                 _raise_no_default(property_name, property_)
 
-                if callable(property_.default):
-                    if type(property_.default_args) == dict:
-                        property_.value = property_.default(
-                            **property_.default_args
-                        )
-                    else:
-                        property_.value = property_.default(
-                            *property_.default_args
-                        )
-
-                    node_properties.remove(property_name)
-
-                setattr(self, private_name, property_)
-
-            for property_name in node_properties:
-                private_name = _create_private_name(property_name)
-                property_ = _get_attribute(private_name)
-
-                if type(property_.default) == str:
-                    default_private_name = _create_private_name(
-                        property_.default
+                if type(property_.default_args) == dict:
+                    print(f"{property_.default_args=}")
+                    property_.value = property_.default(
+                        **property_.default_args
                     )
-                    try:
-                        property_.value = getattr(
-                            self, default_private_name
-                        ).value
-                    except AttributeError:
-                        raise AttributeError(
-                            f"{type(self).__name__} has no attribute '{property_.default}' to use as default for '{property_name}'"
-                        )
-
                 else:
-                    raise ValueError(
-                        f"Invalid default for property '{property_name}': {property_.default}"
-                    )
+                    property_.value = property_.default(*property_.default_args)
 
                 setattr(self, private_name, property_)
 
@@ -306,6 +238,44 @@ class NodeBase(GraphObjectBase, metaclass=GraphObjectMeta):
         _set_properties_from_kwargs(node_properties)
         _set_default_properties(node_properties)
 
+    @property
+    def _label(self):
+        return type(self).__name__
+
+    @property
+    def _properties(self):
+        properties = {
+            getattr(self, "_" + name).name: getattr(self, name)
+            for name in self.__dir__()
+            if not name.startswith("_")
+            and name != "id"
+            and type(getattr(self, "_" + name)) == Property
+        }
+
+        return properties
+
+    @property
+    def _cypher_properties(self):
+        properties = self._properties
+        cypher_properties = "{"
+
+        for name, value in properties.items():
+            if value:
+                cypher_properties += f"`{name}`: {repr(value)}"
+
+        cypher_properties += "}"
+
+        return cypher_properties
+
+    def __str__(self):
+        return f"{self.__class__.__name__}{self._cypher_properties}"
+
+    def __repr__(self):
+
+        return f"{self.__class__.__name__}(id={getattr(self, 'id', None)}, properties={self._properties})"
+
+
+class NodeBase(GraphObjectBase):
     def __eq__(self, other):
         node_label_is_equal = type(self) == type(other)
         properties_are_equal = self._properties == other._properties
@@ -324,5 +294,5 @@ class MultiLabel:
     pass
 
 
-class RelationshipBase(GraphObjectBase, metaclass=GraphObjectMeta):
+class RelationshipBase(GraphObjectBase):
     pass
