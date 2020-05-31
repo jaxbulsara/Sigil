@@ -37,7 +37,7 @@ class Property:
         def _raise_bad_default_type():
             default_is_callable = callable(self.default)
             if not (default_is_callable):
-                raise ValueError(
+                raise TypeError(
                     f"default must be a Callable, not {type(self.default).__name__}"
                 )
 
@@ -53,7 +53,7 @@ class Property:
             )
 
             if not default_args_is_valid:
-                raise ValueError(
+                raise TypeError(
                     f"default_args must be a list, tuple, or dict, not {type(self.default_args).__name__}"
                 )
 

@@ -133,15 +133,13 @@ def test_wrong_property_default(graph):
     def default_value(value):
         return f"default {value}"
 
-    with pytest.raises(
-        ValueError, match=r"default must be a Callable, not int"
-    ):
+    with pytest.raises(TypeError, match=r"default must be a Callable, not int"):
 
         class TestNode(NodeBase):
             test_property = Property(default=1)
 
     with pytest.raises(
-        ValueError,
+        TypeError,
         match=r"default_args must be a list, tuple, or dict, not str",
     ):
 
