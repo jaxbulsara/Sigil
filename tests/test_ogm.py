@@ -169,6 +169,17 @@ def test_property_default(graph):
     assert test_node.dict_property == "default hello"
 
 
+def test_optional_property(graph):
+    class Character(NodeBase):
+        name = Property()
+        occupation = Property(optional=True)
+
+    with pytest.raises(
+        AttributeError, match=r"Property 'name' must be defined."
+    ):
+        Character()
+
+
 # def test_complex_node_creation(graph):
 #     class Employee(NodeBase):
 #         name = Property()
