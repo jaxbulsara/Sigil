@@ -170,11 +170,36 @@ def test_optional_property(graph):
     class Character(NodeBase):
         name = Property()
         occupation = Property(optional=True)
+        origin = Property(default="Middle Earth")
 
     with pytest.raises(
         AttributeError, match=r"Property 'name' must be defined."
     ):
         Character()
+
+    with pytest.raises(
+        AttributeError, match=r"Property 'name' must be defined."
+    ):
+        Character(occupation="Gardener")
+
+    with pytest.raises(
+        AttributeError, match=r"Property 'name' must be defined."
+    ):
+        Character(occupation="Gardener", origin="The Shire")
+
+    sam = Character(name="Samwise Gamgee", origin="The Shire")
+    frodo = Character(
+        name="Frodo Baggins", occupation="Ringbearer", origin="The Shire"
+    )
+
+    assert type(sam) == Character
+    assert sam.name == "Samwise Gamgee"
+    assert sam.origin == "The Shire"
+
+    assert type(frodo) == Character
+    assert frodo.name == "Frodo Baggins"
+    assert frodo.occupation == "Ringbearer"
+    assert frodo.origin == "The Shire"
 
 
 # def test_complex_node_creation(graph):
