@@ -133,11 +133,6 @@ def test_wrong_property_default(graph):
     def default_value(value):
         return f"default {value}"
 
-    with pytest.raises(TypeError, match=r"default must be a Callable, not int"):
-
-        class TestNode(NodeBase):
-            test_property = Property(default=1)
-
     with pytest.raises(
         TypeError,
         match=r"default_args must be a list, tuple, or dict, not str",
@@ -161,12 +156,14 @@ def test_property_default(graph):
         dict_property = Property(
             default=default_value, default_args=dict(value="hello")
         )
+        other_property = Property(default="default")
 
     test_node = TestNode()
 
     assert test_node.tuple_property == "default hello"
     assert test_node.list_property == "default hello"
     assert test_node.dict_property == "default hello"
+    assert test_node.other_property == "default"
 
 
 def test_optional_property(graph):
